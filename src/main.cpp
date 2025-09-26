@@ -1,5 +1,6 @@
 #include "Drawing.h"
 #include "UI.h"
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd)
 {
     AllocConsole();
@@ -10,5 +11,5 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     UI::Render();
 
     FreeConsole();
-    return 0;
+    return oxorany(0);
 }

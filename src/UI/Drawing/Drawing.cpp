@@ -9,10 +9,12 @@
 #include "GameData.h"
 #include "Utils/Memory.h"
 
-LPCWSTR Drawing::lpWindowName = L"jwt";
+LPCWSTR Drawing::lpWindowName = L"s";
 ImVec2 Drawing::vWindowSize = { 500, 530 };
 ImGuiWindowFlags Drawing::WindowFlags = 0;
 bool Drawing::bDraw = true;
+
+KeyBindState wallhackState, chamsState;
 
 static std::string VkToName(int vk) {
     if (vk == 0) return "None";
@@ -35,31 +37,30 @@ static std::string VkToName(int vk) {
     }
 }
 
-bool ImGuiKeyBind(const char* label, int& bind) {
-    static bool listening = false;
-    static int temp_bind = 0;
+bool ImGuiKeyBind(const char* label, int& bind, KeyBindState& state) {
 
     ImGui::TextUnformatted(label);
     ImGui::SameLine();
 
-    std::string btn_label = listening ? "Press" : VkToName(bind);
+    std::string btn_label = state.listening ? "Press" : VkToName(bind);
 
     if (ImGui::Button(btn_label.c_str())) {
-        listening = !listening;
-        if (listening) temp_bind = bind;
+        state.listening = !state.listening;
+        if (state.listening) state.temp_bind = bind;
     }
 
     bool changed = false;
-    if (listening) {
-        if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) { bind = VK_LBUTTON; listening = false; changed = true; }
-        else if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) { bind = VK_RBUTTON; listening = false; changed = true; }
-        else if (GetAsyncKeyState(VK_MBUTTON) & 0x8000) { bind = VK_MBUTTON; listening = false; changed = true; }
+
+    if (state.listening) {
+        if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) { bind = VK_LBUTTON; state.listening = false; changed = true; }
+        else if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) { bind = VK_RBUTTON; state.listening = false; changed = true; }
+        else if (GetAsyncKeyState(VK_MBUTTON) & 0x8000) { bind = VK_MBUTTON; state.listening = false; changed = true; }
 
         for (int vk = 0; vk <= 255 && !changed; ++vk) {
             if (GetAsyncKeyState(vk) & 0x8000) {
-                if (vk == VK_ESCAPE) { bind = temp_bind; listening = false; changed = false; }
-                else if (vk == VK_DELETE) { bind = 0; listening = false; changed = true; }
-                else { bind = vk; listening = false; changed = true; }
+                if (vk == VK_ESCAPE) { bind = state.temp_bind; state.listening = false; changed = false; }
+                else if (vk == VK_DELETE) { bind = 0; state.listening = false; changed = true; }
+                else { bind = vk; state.listening = false; changed = true; }
             }
         }
     }
@@ -82,21 +83,21 @@ void Drawing::Active() { bDraw = true; }
 bool Drawing::isActive() { return bDraw; }
 
 void Drawing::init() {
-    if (!Game::isRunning("stalcraft.exe")) {
-        MessageBoxW(NULL, L"Game is not running!", L"ERROR", MB_ICONERROR);
-        return;
+    if (!Game::isRunning(oxorany("stalcraft.exe"))) {
+        MessageBoxW(NULL, oxorany(L"Game is not running!"), oxorany(L"ERROR"), MB_ICONERROR);
+        ExitProcess(EXIT_FAILURE);
     }
 
-    processId = Game::getProcessId("stalcraft.exe");
+    processId = Game::getProcessId(oxorany("stalcraft.exe"));
     memory.processId = processId;
     memory.processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
     if (!memory.processHandle) {
-        MessageBoxW(NULL, L"Failed to open process!", L"ERROR", MB_ICONERROR);
-        return;
+        MessageBoxW(NULL, oxorany(L"Failed to open process!"), oxorany(L"ERROR"), MB_ICONERROR);
+        ExitProcess(EXIT_FAILURE);
     }
 
     do {
-        Globals::baseAddress = memory.GetModuleAddress("nvoglv64.dll");
+        Globals::baseAddress = memory.GetModuleAddress(oxorany("nvoglv64.dll"));
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     } while (!Globals::baseAddress);
 
@@ -176,23 +177,21 @@ void Drawing::Draw() {
     ImVec2 windowSize(600, 500);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
     ImGuiIO& io = ImGui::GetIO();
-    // ImGui::SetNextWindowSize(ImVec2(950,700), ImGuiCond_FirstUseEver);
-    // ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x / 2, io.DisplaySize.y / 2), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 
     ImGui::Begin("##", &bDraw, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
     {
         switch (menuState.selectedTab) {
             case 0:
-                ImGui::BeginChild("Wallhack", ImVec2(0, 80), false); 
+                ImGui::BeginChild(oxorany("Wallhack"), ImVec2(0, 80), false); 
                 ImGui::SetCursorPos(ImVec2(20, 25));
-                ImGui::Text("Wallhack");
+                ImGui::Text(oxorany("Wallhack"));
                 ImGui::SameLine();
                 ImGui::SetCursorPos(checkboxPos);
-                ImGui::Checkbox("##wallhack", &Globals::g_wallhack_C);
+                ImGui::Checkbox(oxorany("##wallhack"), &Globals::g_wallhack_C);
                 if (Globals::g_wallhack_C)
                 {
                 ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() / 1.5, 20));
-                ImGuiKeyBind("", Globals::g_wallhackBind);
+                ImGuiKeyBind("", Globals::g_wallhackBind, wallhackState);
                 if (Globals::g_wallhackBind != 0 && IsKeyPressedOnce(Globals::g_wallhackBind))
                 {
                     Wallhack::toggle(Globals::g_wallhack, memory.processHandle);
@@ -200,16 +199,16 @@ void Drawing::Draw() {
                 }
                 ImGui::EndChild();
                 // ------- CHAMS -------    
-                ImGui::BeginChild("Chams", ImVec2(0, 80), false); 
+                ImGui::BeginChild(oxorany("Chams"), ImVec2(0, 80), false); 
                 ImGui::SetCursorPos(ImVec2(20, 25));
-                ImGui::Text("Chams (visible only)");
+                ImGui::Text(oxorany("Chams (visible only)"));
                 ImGui::SameLine();
                 ImGui::SetCursorPos(checkboxPos);
-                ImGui::Checkbox("##Chams", &Globals::g_chams_C);
+                ImGui::Checkbox(oxorany("##Chams"), &Globals::g_chams_C);
                 if (Globals::g_chams_C)
                 {
                 ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() / 1.5, 20));
-                ImGuiKeyBind("", Globals::g_chamsBind);
+                ImGuiKeyBind("", Globals::g_chamsBind, chamsState);
                 if (Globals::g_chamsBind != 0 && IsKeyPressedOnce(Globals::g_chamsBind))
                 {
                     Chams::toggle(Globals::g_chams, memory.processHandle);
@@ -218,21 +217,21 @@ void Drawing::Draw() {
                 ImGui::EndChild();
             break;
             case 1:
-                ImGui::BeginChild("##Settings", ImVec2(0, 80), false);
+                ImGui::BeginChild(oxorany("##Settings"), ImVec2(0, 80), false);
                 ImGui::SetCursorPos(ImVec2(20, 25));
-                ImGui::Text("Telegram: t.me/pmquestor");
+                ImGui::Text(oxorany("Telegram: t.me/pmquestor"));
                 ImGui::EndChild();
             break;
         }
 
         ImGui::SetCursorPos(ImVec2(posX, posY + 100));
-        if (ImGui::Button("P", ImVec2(buttonWidth, buttonHeight))) menuState.selectedTab = 0;
+        if (ImGui::Button(oxorany("P"), ImVec2(buttonWidth, buttonHeight))) menuState.selectedTab = 0;
 
         ImGui::SameLine(posX + buttonWidth + spacing);
-        if (ImGui::Button("M", ImVec2(buttonWidth, buttonHeight))) menuState.selectedTab = 1;
+        if (ImGui::Button(oxorany("M"), ImVec2(buttonWidth, buttonHeight))) menuState.selectedTab = 1;
 
         ImGui::SameLine(posX + buttonWidth + spacing - 300);
-        if (ImGui::Button("X", ImVec2(buttonWidth, buttonHeight))) bDraw = false;
+        if (ImGui::Button(oxorany("X"), ImVec2(buttonWidth, buttonHeight))) bDraw = false;
     }
     ImGui::End();
 

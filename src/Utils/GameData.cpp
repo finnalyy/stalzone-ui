@@ -15,7 +15,7 @@ void Wallhack::toggle(bool& enabled, HANDLE processHandle)
         enabled = !enabled;
     }
     else {
-        std::cerr << "Wallhack toggle failed: " << GetLastError() << std::endl;
+        std::cerr << oxorany("Wallhack toggle failed: ") << GetLastError() << std::endl;
     }
 }
 
@@ -32,5 +32,5 @@ void Chams::toggle(bool& enabled, HANDLE processHandle)
     if (result && bytesWritten == sizeof(patch))
         enabled = !enabled;
     else
-        std::cerr << "Chams toggle failed: " << GetLastError() << std::endl;
+        std::cerr << oxorany("Chams toggle failed: ") << GetLastError() << std::endl;
 }

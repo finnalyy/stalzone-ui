@@ -5,3 +5,8 @@ struct MenuState {
 };
 
 MenuState menuState;
+
+struct KeyBindState {
+    bool listening = false;
+    int temp_bind = 0;
+};

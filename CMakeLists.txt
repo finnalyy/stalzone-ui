@@ -30,6 +30,7 @@ target_include_directories(loader PRIVATE
   "${PROJECT_SOURCE_DIR}/src/Utils"
 	"${PROJECT_SOURCE_DIR}/src/SDK/ImGui"
   "${PROJECT_SOURCE_DIR}/src/UI"
+  "${PROJECT_SOURCE_DIR}/src/Utils/Crypt"
 )
 
 
