@@ -33,7 +33,7 @@ private:
     inline static const SIZE_T size = sizeof(orig);
 
 public:
-    static void Init() { address = Globals::baseAddress + 0x80043B; }
+    static void Init() { address = Globals::baseAddress + 0x800F7B; }
     static void toggle(bool& enabled, HANDLE processHandle);
     static SIZE_T getSize() { return size; }
 };
@@ -46,7 +46,13 @@ private:
     inline static const SIZE_T size = sizeof(orig);
 
 public:
-    static void Init() { address = Globals::baseAddress + 0x7FFD3B; }
+    static void Init() { address = Globals::baseAddress + 0x80087B; }
     static void toggle(bool& enabled, HANDLE processHandle);
     static SIZE_T getSize() { return size; }
 };
+
+
+// Wallhack: 0x80043B, 0x800F7B 
+
+
+// Chams: 0x7FFD3B, 0x80087B
