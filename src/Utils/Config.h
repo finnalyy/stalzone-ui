@@ -1,4 +1,4 @@
-#pragma one
+#pragma once
 
 struct MenuState {
 	int selectedTab = 0;

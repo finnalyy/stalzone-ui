@@ -1,4 +1,5 @@
 #pragma once
+
 #include "pch.h"
 #include "Utils/Memory.h"
 
@@ -15,14 +16,17 @@ struct Game
 
 namespace Globals {
     inline std::uintptr_t baseAddress = 0;
-
+    // Wallhack
     inline bool g_wallhack = false;
     inline bool g_wallhack_C = false;
     inline int g_wallhackBind = 0;
-    // chams
+    // Chams
     inline bool g_chams = false;
     inline bool g_chams_C = false;
     inline int g_chamsBind = 0;
+
+    inline std::uintptr_t wallhackAddr = 0;
+    inline std::uintptr_t chamsAddr = 0;
 }
 
 struct Wallhack {
@@ -33,7 +37,10 @@ private:
     inline static const SIZE_T size = sizeof(orig);
 
 public:
-    static void Init() { address = Globals::baseAddress + 0x800F7B; }
+    static void Init(std::uintptr_t base, std::uintptr_t addr) {
+    address = base + addr;
+    }
+
     static void toggle(bool& enabled, HANDLE processHandle);
     static SIZE_T getSize() { return size; }
 };
@@ -46,13 +53,10 @@ private:
     inline static const SIZE_T size = sizeof(orig);
 
 public:
-    static void Init() { address = Globals::baseAddress + 0x80087B; }
+    static void Init(std::uintptr_t base, std::uintptr_t addr) {
+    address = base + addr;
+    }
+
     static void toggle(bool& enabled, HANDLE processHandle);
     static SIZE_T getSize() { return size; }
 };
-
-
-// Wallhack: 0x80043B, 0x800F7B 
-
-
-// Chams: 0x7FFD3B, 0x80087B

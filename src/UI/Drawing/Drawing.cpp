@@ -101,8 +101,9 @@ void Drawing::init() {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     } while (!Globals::baseAddress);
 
-    Wallhack::Init();
-    Chams::Init();
+    Chams::Init(Globals::baseAddress, Globals::chamsAddr);
+    Wallhack::Init(Globals::baseAddress, Globals::wallhackAddr);
+
 }
 
 void Drawing::Draw() {
@@ -219,7 +220,11 @@ void Drawing::Draw() {
             case 1:
                 ImGui::BeginChild(oxorany("##Settings"), ImVec2(0, 80), false);
                 ImGui::SetCursorPos(ImVec2(20, 25));
-                ImGui::Text(oxorany("Telegram: t.me/pmquestor"));
+                ImGui::Text(oxorany("Author: t.me/jiscript"));
+                ImGui::EndChild();
+                ImGui::BeginChild(oxorany("##Info"), ImVec2(0, 80), false);
+                ImGui::SetCursorPos(ImVec2(20, 25));
+                ImGui::Text(oxorany("Last update: 07.10.2025"));
                 ImGui::EndChild();
             break;
         }

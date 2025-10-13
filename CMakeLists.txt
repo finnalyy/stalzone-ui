@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
-
 project(SK_PROJECT LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 add_compile_definitions(_MBCS)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${PROJECT_SOURCE_DIR}/bin/Debug)
@@ -14,26 +12,32 @@ file(GLOB_RECURSE SRC_FILES
   "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
 
-
 add_executable(loader WIN32 ${SRC_FILES})
+
 # x64 libs
 file(GLOB DIRECTX_LIBS PRIVATE
   "${PROJECT_SOURCE_DIR}/src/SDK/DirectX/Lib/x64/*.lib"
 )
 
-# -----------------
-
+# include dirs
 target_include_directories(loader PRIVATE
-	"${PROJECT_SOURCE_DIR}/src"
-	"${PROJECT_SOURCE_DIR}/src/SDK/DirectX/Include"
+  "${PROJECT_SOURCE_DIR}/src"
+  "${PROJECT_SOURCE_DIR}/src/SDK/DirectX/Include"
   "${PROJECT_SOURCE_DIR}/src/UI/Drawing"
   "${PROJECT_SOURCE_DIR}/src/Utils"
-	"${PROJECT_SOURCE_DIR}/src/SDK/ImGui"
+  "${PROJECT_SOURCE_DIR}/src/SDK/ImGui"
   "${PROJECT_SOURCE_DIR}/src/UI"
   "${PROJECT_SOURCE_DIR}/src/Utils/Crypt"
 )
 
+find_package(CURL REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
-target_link_libraries(loader PRIVATE ${DIRECTX_LIBS})
+target_link_libraries(loader PRIVATE
+  ${DIRECTX_LIBS}
+  d3d11 dxgi d3dcompiler
+  CURL::libcurl
+  nlohmann_json::nlohmann_json
+)
+
 target_precompile_headers(loader PRIVATE src/pch.h)
-target_link_libraries(loader PRIVATE d3d11 dxgi d3dcompiler)

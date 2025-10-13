@@ -1,4 +1,5 @@
-#pragma one
+#pragma once
+
 
 #include "pch.h"
 
