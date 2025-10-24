@@ -35,7 +35,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     struct curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, "Authorization: JXIOJ92DNDU92HDKLDNHXWIUD");
 
-    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:3000/sc-data");
+    curl_easy_setopt(curl, CURLOPT_URL, "https://loader-backend.vercel.app/sc-data");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
