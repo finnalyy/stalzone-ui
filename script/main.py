@@ -67,7 +67,7 @@ if results:
                 print(f'chams -> 0x{address:X}')
             if index == 8:
                 print(f'wallhack -> 0x{address:X}')
-            print(f"0x{address:X}")
+            # print(f"0x{address:X}")
             if index == 14:
                 print(f'fuck models -> 0x{address:X}')
 else:

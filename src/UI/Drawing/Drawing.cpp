@@ -8,41 +8,23 @@
 #include "Config.h"
 #include "GameData.h"
 #include "Utils/Memory.h"
+#include <imgui_internal.h>
 
 LPCWSTR Drawing::lpWindowName = L"s";
 ImVec2 Drawing::vWindowSize = { 500, 530 };
 ImGuiWindowFlags Drawing::WindowFlags = 0;
 bool Drawing::bDraw = true;
 
-KeyBindState wallhackState, chamsState;
+static int currentTab = 0;
 
-static std::string VkToName(int vk) {
-    if (vk == 0) return "None";
-    if ((vk >= 'A' && vk <= 'Z') || (vk >= '0' && vk <= '9')) {
-        char buf[2] = { (char)vk, 0 };
-        return std::string(buf);
-    }
-    switch (vk) {
-        case VK_SPACE: return "Space"; case VK_ESCAPE: return "Esc"; case VK_RETURN: return "Enter";
-        case VK_BACK: return "Backspace"; case VK_TAB: return "Tab"; case VK_SHIFT: return "Shift";
-        case VK_CONTROL: return "Ctrl"; case VK_MENU: return "Alt"; case VK_LWIN: return "LWin";
-        case VK_RWIN: return "RWin"; case VK_LEFT: return "Left"; case VK_RIGHT: return "Right";
-        case VK_UP: return "Up"; case VK_DOWN: return "Down"; case VK_INSERT: return "Insert";
-        case VK_DELETE: return "Delete"; case VK_PRIOR: return "PageUp"; case VK_NEXT: return "PageDown";
-        case VK_HOME: return "Home"; case VK_END: return "End"; case VK_F1: return "F1"; case VK_F2: return "F2";
-        case VK_F3: return "F3"; case VK_F4: return "F4"; case VK_F5: return "F5"; case VK_F6: return "F6";
-        case VK_F7: return "F7"; case VK_F8: return "F8"; case VK_F9: return "F9"; case VK_F10: return "F10";
-        case VK_F11: return "F11"; case VK_F12: return "F12";
-        default: return "VK_" + std::to_string(vk);
-    }
-}
+KeyBindState wallhackState, chamsState;
 
 bool ImGuiKeyBind(const char* label, int& bind, KeyBindState& state) {
 
     ImGui::TextUnformatted(label);
     ImGui::SameLine();
 
-    std::string btn_label = state.listening ? "Press" : VkToName(bind);
+    std::string btn_label = state.listening ? "Press" : Drawing::VkToName(bind);
 
     if (ImGui::Button(btn_label.c_str())) {
         state.listening = !state.listening;
@@ -83,163 +65,275 @@ void Drawing::Active() { bDraw = true; }
 bool Drawing::isActive() { return bDraw; }
 
 void Drawing::init() {
-    if (!Game::isRunning(oxorany("stalcraft.exe"))) {
-        MessageBoxW(NULL, oxorany(L"Game is not running!"), oxorany(L"ERROR"), MB_ICONERROR);
-        ExitProcess(EXIT_FAILURE);
-    }
+    // if (!Game::isRunning(oxorany("stalcraft.exe"))) {
+    //     MessageBoxW(NULL, oxorany(L"Game is not running!"), oxorany(L"Error"), MB_ICONERROR);
+    //     ExitProcess(EXIT_FAILURE);
+    // }   
 
     processId = Game::getProcessId(oxorany("stalcraft.exe"));
     memory.processId = processId;
     memory.processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
-    if (!memory.processHandle) {
-        MessageBoxW(NULL, oxorany(L"Failed to open process!"), oxorany(L"ERROR"), MB_ICONERROR);
-        ExitProcess(EXIT_FAILURE);
-    }
+    // if (!memory.processHandle) {
+    //     MessageBoxW(NULL, oxorany(L"Failed to open process!"), oxorany(L"Error"), MB_ICONERROR);
+    //     ExitProcess(EXIT_FAILURE);
+    // }
 
-    do {
-        Globals::baseAddress = memory.GetModuleAddress(oxorany("nvoglv64.dll"));
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    } while (!Globals::baseAddress);
+    // do {
+    //     Globals::baseAddress = memory.GetModuleAddress(oxorany("nvoglv64.dll"));
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    // } while (!Globals::baseAddress);
 
     Chams::Init(Globals::baseAddress, Globals::chamsAddr);
     Wallhack::Init(Globals::baseAddress, Globals::wallhackAddr);
 
 }
 
+namespace Colors {
+    ImVec4 Background = ImVec4(0.08f, 0.08f, 0.10f, 0.95f);
+    ImVec4 TitleBar = ImVec4(0.12f, 0.12f, 0.14f, 1.0f);
+    ImVec4 Purple = ImVec4(0.6f, 0.4f, 0.9f, 1.0f);
+    ImVec4 PurpleDim = ImVec4(0.4f, 0.3f, 0.6f, 1.0f);
+    ImVec4 Text = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
+    ImVec4 TextDim = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
+    ImVec4 ButtonBg = ImVec4(0.15f, 0.15f, 0.18f, 1.0f);
+    ImVec4 ButtonHover = ImVec4(0.2f, 0.2f, 0.24f, 1.0f);
+    ImVec4 ToggleActive = ImVec4(0.6f, 0.4f, 0.9f, 1.0f);
+    ImVec4 ToggleInactive = ImVec4(0.3f, 0.3f, 0.35f, 1.0f);
+}
+
+void DrawToggle(const char* label, bool* value, float width = 40.0f) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return;
+
+    ImGuiContext& g = *GImGui;
+    const ImGuiStyle& style = g.Style;
+    const ImGuiID id = window->GetID(label);
+    const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+
+    const float height = 20.0f;
+    const ImVec2 pos = window->DC.CursorPos;
+    const ImRect total_bb(pos, ImVec2(pos.x + width, pos.y + height));
+
+    ImGui::ItemSize(total_bb, style.FramePadding.y);
+    if (!ImGui::ItemAdd(total_bb, id))
+        return;
+
+    bool hovered, held;
+    bool pressed = ImGui::ButtonBehavior(total_bb, id, &hovered, &held);
+    if (pressed)
+        *value = !*value;
+
+    float t = *value ? 1.0f : 0.0f;
+
+    // Рисуем фон переключателя
+    ImU32 col_bg = *value ? ImGui::GetColorU32(Colors::ToggleActive) : ImGui::GetColorU32(Colors::ToggleInactive);
+    window->DrawList->AddRectFilled(total_bb.Min, total_bb.Max, col_bg, height * 0.5f);
+
+    // Рисуем круглый индикатор
+    float circle_radius = height * 0.35f;
+    float circle_pos_x = *value ? (total_bb.Max.x - circle_radius - 3.0f) : (total_bb.Min.x + circle_radius + 3.0f);
+    ImVec2 circle_center(circle_pos_x, total_bb.Min.y + height * 0.5f);
+    window->DrawList->AddCircleFilled(circle_center, circle_radius, IM_COL32(255, 255, 255, 255));
+}
+
 void Drawing::Draw() {
     if (!isActive()) return;
 
-    float windowWidth = ImGui::GetWindowWidth();
-    float windowHeight = ImGui::GetWindowHeight();
-
-    float buttonWidth = 70;
-    float buttonHeight = 40;
-    float spacing = 10;
-    float totalWidth = buttonWidth * 2 + spacing;
-    float posX = (windowWidth - totalWidth) / 2 + 100;
-    float posY = windowHeight - buttonHeight - 20;
-    ImVec2 checkboxPos = ImVec2(ImGui::GetWindowWidth() / 0.8, 20);
-
     ImGuiStyle& style = ImGui::GetStyle();
-    ImGuiStyle originalStyle = style;
-
-    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.047f, 0.078f, 0.125f, 1.00f); // #0c1420
-    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.075f, 0.110f, 0.157f, 1.00f);  // #131c28
-    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.075f, 0.110f, 0.157f, 1.00f);
-    style.Colors[ImGuiCol_Border] = ImVec4(0.18f, 0.25f, 0.35f, 1.00f);      // #2d404a
-    style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.090f, 0.133f, 0.184f, 1.00f);  // #17222f
-    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.12f, 0.17f, 0.23f, 1.00f);
-    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.08f, 0.12f, 0.17f, 1.00f);
-    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.047f, 0.078f, 0.125f, 1.00f);
-    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.047f, 0.078f, 0.125f, 1.00f);
-    style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.047f, 0.078f, 0.125f, 1.00f);
-    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.047f, 0.078f, 0.125f, 1.00f);
-    style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.047f, 0.078f, 0.125f, 1.00f);
-    style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.18f, 0.25f, 0.35f, 1.00f);
-    style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.22f, 0.30f, 0.40f, 1.00f);
-    style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.26f, 0.35f, 0.45f, 1.00f);
-    style.Colors[ImGuiCol_CheckMark] = ImVec4(0.20f, 0.80f, 0.40f, 1.00f);
-    style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.20f, 0.80f, 0.40f, 1.00f);
-    style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.25f, 0.85f, 0.45f, 1.00f);
-    style.Colors[ImGuiCol_Button] = ImVec4(0.15f, 0.22f, 0.32f, 1.00f); 
-    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.18f, 0.26f, 0.36f, 1.00f);
-    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.12f, 0.19f, 0.28f, 1.00f);
-    style.Colors[ImGuiCol_Header] = ImVec4(0.20f, 0.80f, 0.40f, 0.30f);
-    style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.20f, 0.80f, 0.40f, 0.50f);
-    style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.20f, 0.80f, 0.40f, 0.70f);
-    style.Colors[ImGuiCol_Separator] = ImVec4(0.18f, 0.25f, 0.35f, 1.00f);
-    style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.22f, 0.30f, 0.40f, 1.00f);
-    style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.26f, 0.35f, 0.45f, 1.00f);
-    style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.20f, 0.80f, 0.40f, 0.20f);
-    style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.20f, 0.80f, 0.40f, 0.50f);
-    style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.20f, 0.80f, 0.40f, 0.70f);
-    style.Colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-    style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-
-    style.WindowRounding = 12.0f;
-    style.ChildRounding = 12.0f;
-    style.FrameRounding = 8.0f;
-    style.GrabRounding = 8.0f;
-    style.ScrollbarRounding = 8.0f;
-    style.TabRounding = 8.0f;
-    style.WindowPadding = ImVec2(20, 20);
-    style.FramePadding = ImVec2(10, 6);
-    style.ItemSpacing = ImVec2(12, 12);
-    style.ItemInnerSpacing = ImVec2(8, 6);
-    style.IndentSpacing = 25.0f;
-    style.ScrollbarSize = 14.0f;
-    style.GrabMinSize = 10.0f;
-    style.WindowBorderSize = 1.0f;
-    style.ChildBorderSize = 1.0f;
-    style.PopupBorderSize = 1.0f;
-    style.FrameBorderSize = 0.0f;
     
-    ImVec2 windowSize(600, 500);
-    ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
-    ImGuiIO& io = ImGui::GetIO();
+    style.WindowRounding = 8.0f;
+    style.FrameRounding = 4.0f;
+    style.ScrollbarRounding = 4.0f;
+    style.GrabRounding = 4.0f;
+    style.WindowPadding = ImVec2(0, 0);
+    style.FramePadding = ImVec2(8, 6);
+    style.ItemSpacing = ImVec2(12, 12);
 
-    ImGui::Begin("##", &bDraw, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
-    {
-        switch (menuState.selectedTab) {
-            case 0:
-                ImGui::BeginChild(oxorany("Wallhack"), ImVec2(0, 80), false); 
-                ImGui::SetCursorPos(ImVec2(20, 25));
-                ImGui::Text(oxorany("Wallhack"));
-                ImGui::SameLine();
-                ImGui::SetCursorPos(checkboxPos);
-                ImGui::Checkbox(oxorany("##wallhack"), &Globals::g_wallhack_C);
-                if (Globals::g_wallhack_C)
-                {
-                ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() / 1.5, 20));
-                ImGuiKeyBind("", Globals::g_wallhackBind, wallhackState);
+    ImGui::SetNextWindowSize(ImVec2(500, 450), ImGuiCond_FirstUseEver);
+    
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, Colors::Background);
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, Colors::TitleBar);
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, Colors::TitleBar);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.2f, 0.2f, 0.25f, 1.0f));
+    
+    if (ImGui::Begin("##", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar)) {
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        ImVec2 window_pos = ImGui::GetWindowPos();
+        ImVec2 window_size = ImGui::GetWindowSize();
+
+        ImGui::SetCursorPos(ImVec2(20, 15));
+        ImGui::PushStyleColor(ImGuiCol_Text, Colors::Purple);
+        ImGui::Text(oxorany("KILLCHEAT"));
+        ImGui::PopStyleColor();
+
+        ImGuiIO& io = ImGui::GetIO();
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImVec2 windowPos = ImGui::GetWindowPos();
+
+        static float underlineLocalPos = 0.0f;
+        static float underlineWidth = 0.0f;
+        static float targetLocalPos = 0.0f;
+        static float targetWidth = 0.0f;
+        const float animSpeed = 12.0f;
+
+        ImGui::SameLine(250);
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.2f, 0.35f, 0.0f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.6f, 0.4f, 0.9f, 0.2f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.6f, 0.4f, 0.9f, 0.35f));
+        ImGui::PushStyleColor(ImGuiCol_Text, currentTab == 0 ? Colors::Text : Colors::TextDim);
+
+        bool clickedHome = ImGui::Selectable(oxorany("Home"), currentTab == 0, 0, ImVec2(60, 25));
+        ImVec2 homeMin = ImGui::GetItemRectMin();
+        ImVec2 homeMax = ImGui::GetItemRectMax();
+        ImVec2 homeCenter = ImVec2((homeMin.x + homeMax.x) * 0.5f, homeMax.y);
+        float homeWidth = homeMax.x - homeMin.x;
+
+        float homeCenterLocal = homeCenter.x - windowPos.x;
+        float homeYLocal = homeMax.y - windowPos.y;
+
+        ImGui::PopStyleColor(4);
+        ImGui::SameLine();
+
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.2f, 0.35f, 0.0f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.6f, 0.4f, 0.9f, 0.2f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.6f, 0.4f, 0.9f, 0.35f));
+        ImGui::PushStyleColor(ImGuiCol_Text, currentTab == 1 ? Colors::Text : Colors::TextDim);
+
+        bool clickedMisc = ImGui::Selectable(oxorany("Misc"), currentTab == 1, 0, ImVec2(60, 25));
+        ImVec2 miscMin = ImGui::GetItemRectMin();
+        ImVec2 miscMax = ImGui::GetItemRectMax();
+        ImVec2 miscCenter = ImVec2((miscMin.x + miscMax.x) * 0.5f, miscMax.y);
+        float miscWidth = miscMax.x - miscMin.x;
+
+        float miscCenterLocal = miscCenter.x - windowPos.x;
+        float miscYLocal = miscMax.y - windowPos.y;
+
+        ImGui::PopStyleColor(4);
+
+        if (clickedHome && currentTab != 0) {
+            currentTab = 0;
+            targetLocalPos = homeCenterLocal;
+            targetWidth = homeWidth;
+        }
+        if (clickedMisc && currentTab != 1) {
+            currentTab = 1;
+            targetLocalPos = miscCenterLocal;
+            targetWidth = miscWidth;
+        }
+
+        static bool initialized = false;
+        if (!initialized) {
+            initialized = true;
+            if (currentTab == 0) {
+                underlineLocalPos = homeCenterLocal;
+                underlineWidth = homeWidth;
+                targetLocalPos = homeCenterLocal;
+                targetWidth = homeWidth;
+            } else {
+                underlineLocalPos = miscCenterLocal;
+                underlineWidth = miscWidth;
+                targetLocalPos = miscCenterLocal;
+                targetWidth = miscWidth;
+            }
+        }
+
+        // --- Анимация ---
+        underlineLocalPos = ImLerp(underlineLocalPos, targetLocalPos, io.DeltaTime * animSpeed);
+        underlineWidth = ImLerp(underlineWidth, targetWidth, io.DeltaTime * animSpeed);
+
+        // Линия
+        float underlineY = windowPos.y + homeYLocal + 0.0f;
+        float halfWidth = underlineWidth * 0.5f;
+        float underlineX = windowPos.x + underlineLocalPos;
+        dl->AddLine(ImVec2(underlineX - halfWidth, underlineY),
+                    ImVec2(underlineX + halfWidth, underlineY),
+                    ImGui::GetColorU32(Colors::Purple), 2.0f);
+
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(window_size.x - 35);
+        if (ImGui::Selectable(oxorany("X"), false, 0, ImVec2(20, 20))) {
+            exit(0);
+        }
+
+        draw_list->AddLine(
+            ImVec2(window_pos.x + 20, window_pos.y + 55),
+            ImVec2(window_pos.x + window_size.x - 20, window_pos.y + 55),
+            IM_COL32(40, 40, 45, 255)
+        );
+
+        ImGui::SetCursorPos(ImVec2(20, 80));
+        ImGui::BeginChild(oxorany("##Content"), ImVec2(window_size.x - 40, window_size.y - 100), false);
+
+        if (currentTab == 0) { // Home Tab
+
+            ImGui::BeginGroup();
+            
+            ImGui::PushStyleColor(ImGuiCol_Text, Colors::Purple);
+            ImGui::Text(oxorany("Wallhack"));
+            ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, Colors::TextDim);
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 0);
+            ImGui::Text(oxorany("Safe"));
+            ImGui::PopStyleColor();
+
+            ImGui::SameLine(380);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 35);
+            DrawToggle(oxorany("##wallhack"), &Globals::g_wallhack_C);
+
+            if (Globals::g_wallhack_C)
+            {
+                ImGuiKeyBind(oxorany(""), Globals::g_wallhackBind, wallhackState);
                 if (Globals::g_wallhackBind != 0 && IsKeyPressedOnce(Globals::g_wallhackBind))
                 {
                     Wallhack::toggle(Globals::g_wallhack, memory.processHandle);
                 }
-                }
-                ImGui::EndChild();
-                // ------- CHAMS -------    
-                ImGui::BeginChild(oxorany("Chams"), ImVec2(0, 80), false); 
-                ImGui::SetCursorPos(ImVec2(20, 25));
-                ImGui::Text(oxorany("Chams (visible only)"));
-                ImGui::SameLine();
-                ImGui::SetCursorPos(checkboxPos);
-                ImGui::Checkbox(oxorany("##Chams"), &Globals::g_chams_C);
-                if (Globals::g_chams_C)
-                {
-                ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() / 1.5, 20));
-                ImGuiKeyBind("", Globals::g_chamsBind, chamsState);
+            }
+
+            ImGui::Dummy(ImVec2(0, 15));
+
+            // Chams 
+            ImGui::PushStyleColor(ImGuiCol_Text, Colors::Purple);
+            ImGui::Text(oxorany("Chams"));
+            ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, Colors::TextDim);
+            ImGui::Text(oxorany("Only visible"));
+            ImGui::PopStyleColor();
+
+            ImGui::SameLine(380);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 25);
+            DrawToggle(oxorany("##Chams"), &Globals::g_chams_C);
+
+            if (Globals::g_chams_C)
+            {
+                ImGuiKeyBind(oxorany(""), Globals::g_chamsBind, chamsState);
                 if (Globals::g_chamsBind != 0 && IsKeyPressedOnce(Globals::g_chamsBind))
                 {
                     Chams::toggle(Globals::g_chams, memory.processHandle);
                 }
-                }
-                ImGui::EndChild();
-            break;
-            case 1:
-                ImGui::BeginChild(oxorany("##Settings"), ImVec2(0, 80), false);
-                ImGui::SetCursorPos(ImVec2(20, 25));
-                ImGui::Text(oxorany("Author: t.me/jiscript"));
-                ImGui::EndChild();
-                ImGui::BeginChild(oxorany("##Info"), ImVec2(0, 80), false);
-                ImGui::SetCursorPos(ImVec2(20, 25));
-                ImGui::Text(oxorany("Last update: 07.10.2025"));
-                ImGui::EndChild();
-            break;
+            }
+            ImGui::EndGroup();
+        } else if (currentTab == 1) {
+            // ImGui::SetCursorPosX((window_size.x - 40 - 400) / 2);
+            ImGui::PushStyleColor(ImGuiCol_Button, Colors::ButtonBg);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Colors::ButtonHover);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, Colors::ButtonBg);
+            ImGui::PushStyleColor(ImGuiCol_Text, Colors::Text);
+            
+            if (ImGui::Button(oxorany("Save config"), ImVec2(222, 40))) {
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(oxorany("Load config"), ImVec2(222, 40))) {
+            }
+            
+            ImGui::PopStyleColor(4);
+
+            ImGui::Text("t.me/telegram");
         }
 
-        ImGui::SetCursorPos(ImVec2(posX, posY + 100));
-        if (ImGui::Button(oxorany("P"), ImVec2(buttonWidth, buttonHeight))) menuState.selectedTab = 0;
-
-        ImGui::SameLine(posX + buttonWidth + spacing);
-        if (ImGui::Button(oxorany("M"), ImVec2(buttonWidth, buttonHeight))) menuState.selectedTab = 1;
-
-        ImGui::SameLine(posX + buttonWidth + spacing - 300);
-        if (ImGui::Button(oxorany("X"), ImVec2(buttonWidth, buttonHeight))) bDraw = false;
+        ImGui::EndChild();
+        ImGui::End();
     }
-    ImGui::End();
-
-    // style = originalStyle;
-
+    
+    ImGui::PopStyleColor(4);
 }
