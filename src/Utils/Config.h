@@ -1,12 +1,12 @@
 #pragma once
 
-struct MenuState {
-	int selectedTab = 0;
+class Config
+{
+public:
+	bool wallhack = false;
+	bool chams = false;
+	bool testVM = false;
+	int wallhackKey = 0;
 };
 
-MenuState menuState;
-
-struct KeyBindState {
-    bool listening = false;
-    int temp_bind = 0;
-};
+extern Config config;

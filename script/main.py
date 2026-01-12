@@ -6,7 +6,7 @@ import sys
 pattern = b'\xA9\xFF\xF7\xFF\xFF'
 
 # Название процесса
-process_name = "stalcraft.exe"
+process_name = "stalcraftw.exe"
 
 try:
     # Открываем процесс

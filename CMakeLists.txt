@@ -12,7 +12,7 @@ file(GLOB_RECURSE SRC_FILES
   "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
 
-add_executable(loader WIN32 ${SRC_FILES})
+add_executable(main WIN32 ${SRC_FILES})
 
 # x64 libs
 file(GLOB DIRECTX_LIBS PRIVATE
@@ -20,7 +20,7 @@ file(GLOB DIRECTX_LIBS PRIVATE
 )
 
 # include dirs
-target_include_directories(loader PRIVATE
+target_include_directories(main PRIVATE
   "${PROJECT_SOURCE_DIR}/src"
   "${PROJECT_SOURCE_DIR}/src/SDK/DirectX/Include"
   "${PROJECT_SOURCE_DIR}/src/UI/Drawing"
@@ -33,11 +33,11 @@ target_include_directories(loader PRIVATE
 find_package(CURL REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-target_link_libraries(loader PRIVATE
+target_link_libraries(main PRIVATE
   ${DIRECTX_LIBS}
   d3d11 dxgi d3dcompiler
   CURL::libcurl
   nlohmann_json::nlohmann_json
 )
 
-target_precompile_headers(loader PRIVATE src/pch.h)
+# target_precompile_headers(main PRIVATE src/pch.h)

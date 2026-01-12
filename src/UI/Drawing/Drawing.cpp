@@ -1,339 +1,418 @@
-#include <string>
-#include <thread>
-#include <array>
-#include <iostream>
-#include <windows.h>
+// #include <string>
+// #include <thread>
+// #include <array>
+// #include <iostream>
+// #include <windows.h>
+// #include <map>
 
-#include "Drawing.h"
-#include "Config.h"
-#include "GameData.h"
-#include "Utils/Memory.h"
-#include <imgui_internal.h>
+// #include "Drawing.h"
+// #include "offsets.h"
+// #include "Config.h"
+// // #include "memory_func.h"
 
-LPCWSTR Drawing::lpWindowName = L"s";
-ImVec2 Drawing::vWindowSize = { 500, 530 };
-ImGuiWindowFlags Drawing::WindowFlags = 0;
-bool Drawing::bDraw = true;
+// #include <imgui.h>
+// #include <imgui_internal.h>
 
-static int currentTab = 0;
+// LPCWSTR Drawing::lpWindowName = L"s";
+// ImVec2  Drawing::vWindowSize = { 500, 530 };
+// ImGuiWindowFlags Drawing::WindowFlags = 0;
+// bool Drawing::bDraw = true;
+// const char* NameProcess = "";
+// static int currentTab = 0;
+// KeyBindState wallhackState, chamsState;
 
-KeyBindState wallhackState, chamsState;
+// namespace Colors {
+//     ImVec4 Background = ImVec4(0.07f, 0.07f, 0.09f, 0.98f);
+//     ImVec4 TitleBar = ImVec4(0.10f, 0.10f, 0.12f, 1.0f);
+//     ImVec4 Accent = ImVec4(0.65f, 0.45f, 0.95f, 1.0f);
+//     ImVec4 AccentDim = ImVec4(0.45f, 0.35f, 0.65f, 1.0f);
+//     ImVec4 AccentGlow = ImVec4(0.65f, 0.45f, 0.95f, 0.3f);
+//     ImVec4 Text = ImVec4(0.95f, 0.95f, 0.95f, 1.0f);
+//     ImVec4 TextDim = ImVec4(0.55f, 0.55f, 0.6f, 1.0f);
+//     ImVec4 CardBg = ImVec4(0.12f, 0.12f, 0.15f, 1.0f);
+//     ImVec4 CardHover = ImVec4(0.15f, 0.15f, 0.19f, 1.0f);
+//     ImVec4 Border = ImVec4(0.18f, 0.18f, 0.22f, 1.0f);
+//     ImVec4 ToggleActive = ImVec4(0.65f, 0.45f, 0.95f, 1.0f);
+//     ImVec4 ToggleInactive = ImVec4(0.25f, 0.25f, 0.3f, 1.0f);
+// }
 
-bool ImGuiKeyBind(const char* label, int& bind, KeyBindState& state) {
+// bool ImGuiKeyBind(const char* label, int& bind, KeyBindState& state) {
+//     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.75f, 1.0f));
+//     ImGui::TextUnformatted(label);
+//     ImGui::PopStyleColor();
+//     ImGui::SameLine();
 
-    ImGui::TextUnformatted(label);
-    ImGui::SameLine();
+//     std::string btn_label = state.listening ? "Press" : Drawing::VkToName(bind);
 
-    std::string btn_label = state.listening ? "Press" : Drawing::VkToName(bind);
+//     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.18f, 0.22f, 1.0f));
+//     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.3f, 1.0f));
+//     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.4f, 0.9f, 0.4f));
+//     ImGui::PushStyleColor(ImGuiCol_Text, state.listening ? ImVec4(0.6f, 0.4f, 0.9f, 1.0f) : ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
 
-    if (ImGui::Button(btn_label.c_str())) {
-        state.listening = !state.listening;
-        if (state.listening) state.temp_bind = bind;
-    }
-
-    bool changed = false;
-
-    if (state.listening) {
-        if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) { bind = VK_LBUTTON; state.listening = false; changed = true; }
-        else if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) { bind = VK_RBUTTON; state.listening = false; changed = true; }
-        else if (GetAsyncKeyState(VK_MBUTTON) & 0x8000) { bind = VK_MBUTTON; state.listening = false; changed = true; }
-
-        for (int vk = 0; vk <= 255 && !changed; ++vk) {
-            if (GetAsyncKeyState(vk) & 0x8000) {
-                if (vk == VK_ESCAPE) { bind = state.temp_bind; state.listening = false; changed = false; }
-                else if (vk == VK_DELETE) { bind = 0; state.listening = false; changed = true; }
-                else { bind = vk; state.listening = false; changed = true; }
-            }
-        }
-    }
-    return changed;
-}
-
-bool IsKeyPressedOnce(int vk) {
-    if (vk <= 0 || vk > 255) return false;
-    static std::array<bool, 256> prev{};
-    bool down = (GetAsyncKeyState(vk) & 0x8000) != 0;
-    bool pressedOnce = down && !prev[vk];
-    prev[vk] = down;
-    return pressedOnce;
-}
-
-Memory memory;
-DWORD processId = 0;
-
-void Drawing::Active() { bDraw = true; }
-bool Drawing::isActive() { return bDraw; }
-
-void Drawing::init() {
-    // if (!Game::isRunning(oxorany("stalcraft.exe"))) {
-    //     MessageBoxW(NULL, oxorany(L"Game is not running!"), oxorany(L"Error"), MB_ICONERROR);
-    //     ExitProcess(EXIT_FAILURE);
-    // }   
-
-    processId = Game::getProcessId(oxorany("stalcraft.exe"));
-    memory.processId = processId;
-    memory.processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
-    // if (!memory.processHandle) {
-    //     MessageBoxW(NULL, oxorany(L"Failed to open process!"), oxorany(L"Error"), MB_ICONERROR);
-    //     ExitProcess(EXIT_FAILURE);
-    // }
-
-    // do {
-    //     Globals::baseAddress = memory.GetModuleAddress(oxorany("nvoglv64.dll"));
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    // } while (!Globals::baseAddress);
-
-    Chams::Init(Globals::baseAddress, Globals::chamsAddr);
-    Wallhack::Init(Globals::baseAddress, Globals::wallhackAddr);
-
-}
-
-namespace Colors {
-    ImVec4 Background = ImVec4(0.08f, 0.08f, 0.10f, 0.95f);
-    ImVec4 TitleBar = ImVec4(0.12f, 0.12f, 0.14f, 1.0f);
-    ImVec4 Purple = ImVec4(0.6f, 0.4f, 0.9f, 1.0f);
-    ImVec4 PurpleDim = ImVec4(0.4f, 0.3f, 0.6f, 1.0f);
-    ImVec4 Text = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
-    ImVec4 TextDim = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
-    ImVec4 ButtonBg = ImVec4(0.15f, 0.15f, 0.18f, 1.0f);
-    ImVec4 ButtonHover = ImVec4(0.2f, 0.2f, 0.24f, 1.0f);
-    ImVec4 ToggleActive = ImVec4(0.6f, 0.4f, 0.9f, 1.0f);
-    ImVec4 ToggleInactive = ImVec4(0.3f, 0.3f, 0.35f, 1.0f);
-}
-
-void DrawToggle(const char* label, bool* value, float width = 40.0f) {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    if (window->SkipItems)
-        return;
-
-    ImGuiContext& g = *GImGui;
-    const ImGuiStyle& style = g.Style;
-    const ImGuiID id = window->GetID(label);
-    const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
-
-    const float height = 20.0f;
-    const ImVec2 pos = window->DC.CursorPos;
-    const ImRect total_bb(pos, ImVec2(pos.x + width, pos.y + height));
-
-    ImGui::ItemSize(total_bb, style.FramePadding.y);
-    if (!ImGui::ItemAdd(total_bb, id))
-        return;
-
-    bool hovered, held;
-    bool pressed = ImGui::ButtonBehavior(total_bb, id, &hovered, &held);
-    if (pressed)
-        *value = !*value;
-
-    float t = *value ? 1.0f : 0.0f;
-
-    // Рисуем фон переключателя
-    ImU32 col_bg = *value ? ImGui::GetColorU32(Colors::ToggleActive) : ImGui::GetColorU32(Colors::ToggleInactive);
-    window->DrawList->AddRectFilled(total_bb.Min, total_bb.Max, col_bg, height * 0.5f);
-
-    // Рисуем круглый индикатор
-    float circle_radius = height * 0.35f;
-    float circle_pos_x = *value ? (total_bb.Max.x - circle_radius - 3.0f) : (total_bb.Min.x + circle_radius + 3.0f);
-    ImVec2 circle_center(circle_pos_x, total_bb.Min.y + height * 0.5f);
-    window->DrawList->AddCircleFilled(circle_center, circle_radius, IM_COL32(255, 255, 255, 255));
-}
-
-void Drawing::Draw() {
-    if (!isActive()) return;
-
-    ImGuiStyle& style = ImGui::GetStyle();
+//     bool pressed = ImGui::Button(btn_label.c_str(), ImVec2(120, 0));
     
-    style.WindowRounding = 8.0f;
-    style.FrameRounding = 4.0f;
-    style.ScrollbarRounding = 4.0f;
-    style.GrabRounding = 4.0f;
-    style.WindowPadding = ImVec2(0, 0);
-    style.FramePadding = ImVec2(8, 6);
-    style.ItemSpacing = ImVec2(12, 12);
+//     ImGui::PopStyleColor(4);
 
-    ImGui::SetNextWindowSize(ImVec2(500, 450), ImGuiCond_FirstUseEver);
+//     if (pressed) {
+//         state.listening = !state.listening;
+//         if (state.listening) {
+//             state.temp_bind = bind;
+//             state.keys_released = false; // Сбрасываем флаг для этого конкретного состояния
+//         }
+//     }
+
+//     bool changed = false;
+
+//     if (state.listening) {
+//         // Ждём пока все клавиши будут отпущены перед началом захвата
+//         if (!state.keys_released) {
+//             bool anyKeyDown = false;
+//             for (int vk = 1; vk <= 255; ++vk) {
+//                 if (GetAsyncKeyState(vk) & 0x8000) {
+//                     anyKeyDown = true;
+//                     break;
+//                 }
+//             }
+//             if (!anyKeyDown) {
+//                 state.keys_released = true;
+//             }
+//             return false;
+//         }
+
+//         // Теперь можем захватывать клавиши
+//         if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) { 
+//             bind = state.temp_bind; 
+//             state.listening = false;
+//             state.keys_released = false;
+//         } else if (GetAsyncKeyState(VK_DELETE) & 0x8000) { 
+//             bind = 0; 
+//             state.listening = false; 
+//             changed = true;
+//             state.keys_released = false;
+//         } else {
+//             for (int vk = 8; vk <= 255; ++vk) {
+//                 if (vk == VK_LBUTTON || vk == VK_RBUTTON || vk == VK_MBUTTON) continue;
+                
+//                 if (GetAsyncKeyState(vk) & 0x8000) {
+//                     bind = vk;
+//                     state.listening = false;
+//                     changed = true;
+//                     state.keys_released = false;
+//                     break;
+//                 }
+//             }
+//         }
+//     }
+//     return changed;
+// }
+
+// bool IsKeyPressedOnce(int vk) {
+//     if (vk <= 0 || vk > 255) return false;
+//     static std::array<bool, 256> prev{};
+//     bool down = (GetAsyncKeyState(vk) & 0x8000) != 0;
+//     bool pressedOnce = down && !prev[vk];
+//     prev[vk] = down;
+//     return pressedOnce;
+// }
+
+// void DrawToggle(const char* label, bool* value, float width = 46.0f) {
+//     ImGuiWindow* window = ImGui::GetCurrentWindow();
+//     if (window->SkipItems) return;
+
+//     ImGuiContext& g = *GImGui;
+//     const ImGuiStyle& style = g.Style;
+//     const ImGuiID id = window->GetID(label);
+
+//     const float height = 24.0f;
+//     const ImVec2 pos = window->DC.CursorPos;
+//     const ImRect total_bb(pos, ImVec2(pos.x + width, pos.y + height));
+
+//     ImGui::ItemSize(total_bb, style.FramePadding.y);
+//     if (!ImGui::ItemAdd(total_bb, id)) return;
+
+//     bool hovered, held;
+//     bool pressed = ImGui::ButtonBehavior(total_bb, id, &hovered, &held);
+//     if (pressed) *value = !*value;
+
+//     // Анимация
+//     static std::map<ImGuiID, float> animations;
+//     float& anim = animations[id];
+//     float target = *value ? 1.0f : 0.0f;
+//     anim = ImLerp(anim, target, g.IO.DeltaTime * 12.0f);
+
+//     // Фон
+//     ImU32 col_bg = ImGui::GetColorU32(ImLerp(Colors::ToggleInactive, Colors::ToggleActive, anim));
+//     window->DrawList->AddRectFilled(total_bb.Min, total_bb.Max, col_bg, height * 0.5f);
+
+//     // Свечение при hover
+//     if (hovered) {
+//         window->DrawList->AddRect(total_bb.Min, total_bb.Max, 
+//             ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 0.15f)), height * 0.5f, 0, 1.5f);
+//     }
+
+//     // Индикатор
+//     float circle_radius = height * 0.35f;
+//     float circle_pos_x = ImLerp(total_bb.Min.x + circle_radius + 3.0f, 
+//                                  total_bb.Max.x - circle_radius - 3.0f, anim);
+//     ImVec2 circle_center(circle_pos_x, total_bb.Min.y + height * 0.5f);
     
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, Colors::Background);
-    ImGui::PushStyleColor(ImGuiCol_TitleBg, Colors::TitleBar);
-    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, Colors::TitleBar);
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.2f, 0.2f, 0.25f, 1.0f));
+//     // Тень индикатора
+//     window->DrawList->AddCircleFilled(
+//         ImVec2(circle_center.x, circle_center.y + 1), circle_radius, 
+//         IM_COL32(0, 0, 0, 50), 16);
     
-    if (ImGui::Begin("##", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar)) {
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        ImVec2 window_pos = ImGui::GetWindowPos();
-        ImVec2 window_size = ImGui::GetWindowSize();
+//     window->DrawList->AddCircleFilled(circle_center, circle_radius, 
+//         IM_COL32(255, 255, 255, 255), 16);
+// }
 
-        ImGui::SetCursorPos(ImVec2(20, 15));
-        ImGui::PushStyleColor(ImGuiCol_Text, Colors::Purple);
-        ImGui::Text(oxorany("KILLCHEAT"));
-        ImGui::PopStyleColor();
-
-        ImGuiIO& io = ImGui::GetIO();
-        ImDrawList* dl = ImGui::GetWindowDrawList();
-        ImVec2 windowPos = ImGui::GetWindowPos();
-
-        static float underlineLocalPos = 0.0f;
-        static float underlineWidth = 0.0f;
-        static float targetLocalPos = 0.0f;
-        static float targetWidth = 0.0f;
-        const float animSpeed = 12.0f;
-
-        ImGui::SameLine(250);
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.2f, 0.35f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.6f, 0.4f, 0.9f, 0.2f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.6f, 0.4f, 0.9f, 0.35f));
-        ImGui::PushStyleColor(ImGuiCol_Text, currentTab == 0 ? Colors::Text : Colors::TextDim);
-
-        bool clickedHome = ImGui::Selectable(oxorany("Home"), currentTab == 0, 0, ImVec2(60, 25));
-        ImVec2 homeMin = ImGui::GetItemRectMin();
-        ImVec2 homeMax = ImGui::GetItemRectMax();
-        ImVec2 homeCenter = ImVec2((homeMin.x + homeMax.x) * 0.5f, homeMax.y);
-        float homeWidth = homeMax.x - homeMin.x;
-
-        float homeCenterLocal = homeCenter.x - windowPos.x;
-        float homeYLocal = homeMax.y - windowPos.y;
-
-        ImGui::PopStyleColor(4);
-        ImGui::SameLine();
-
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.2f, 0.35f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.6f, 0.4f, 0.9f, 0.2f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.6f, 0.4f, 0.9f, 0.35f));
-        ImGui::PushStyleColor(ImGuiCol_Text, currentTab == 1 ? Colors::Text : Colors::TextDim);
-
-        bool clickedMisc = ImGui::Selectable(oxorany("Misc"), currentTab == 1, 0, ImVec2(60, 25));
-        ImVec2 miscMin = ImGui::GetItemRectMin();
-        ImVec2 miscMax = ImGui::GetItemRectMax();
-        ImVec2 miscCenter = ImVec2((miscMin.x + miscMax.x) * 0.5f, miscMax.y);
-        float miscWidth = miscMax.x - miscMin.x;
-
-        float miscCenterLocal = miscCenter.x - windowPos.x;
-        float miscYLocal = miscMax.y - windowPos.y;
-
-        ImGui::PopStyleColor(4);
-
-        if (clickedHome && currentTab != 0) {
-            currentTab = 0;
-            targetLocalPos = homeCenterLocal;
-            targetWidth = homeWidth;
-        }
-        if (clickedMisc && currentTab != 1) {
-            currentTab = 1;
-            targetLocalPos = miscCenterLocal;
-            targetWidth = miscWidth;
-        }
-
-        static bool initialized = false;
-        if (!initialized) {
-            initialized = true;
-            if (currentTab == 0) {
-                underlineLocalPos = homeCenterLocal;
-                underlineWidth = homeWidth;
-                targetLocalPos = homeCenterLocal;
-                targetWidth = homeWidth;
-            } else {
-                underlineLocalPos = miscCenterLocal;
-                underlineWidth = miscWidth;
-                targetLocalPos = miscCenterLocal;
-                targetWidth = miscWidth;
-            }
-        }
-
-        // --- Анимация ---
-        underlineLocalPos = ImLerp(underlineLocalPos, targetLocalPos, io.DeltaTime * animSpeed);
-        underlineWidth = ImLerp(underlineWidth, targetWidth, io.DeltaTime * animSpeed);
-
-        // Линия
-        float underlineY = windowPos.y + homeYLocal + 0.0f;
-        float halfWidth = underlineWidth * 0.5f;
-        float underlineX = windowPos.x + underlineLocalPos;
-        dl->AddLine(ImVec2(underlineX - halfWidth, underlineY),
-                    ImVec2(underlineX + halfWidth, underlineY),
-                    ImGui::GetColorU32(Colors::Purple), 2.0f);
-
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(window_size.x - 35);
-        if (ImGui::Selectable(oxorany("X"), false, 0, ImVec2(20, 20))) {
-            exit(0);
-        }
-
-        draw_list->AddLine(
-            ImVec2(window_pos.x + 20, window_pos.y + 55),
-            ImVec2(window_pos.x + window_size.x - 20, window_pos.y + 55),
-            IM_COL32(40, 40, 45, 255)
-        );
-
-        ImGui::SetCursorPos(ImVec2(20, 80));
-        ImGui::BeginChild(oxorany("##Content"), ImVec2(window_size.x - 40, window_size.y - 100), false);
-
-        if (currentTab == 0) { // Home Tab
-
-            ImGui::BeginGroup();
-            
-            ImGui::PushStyleColor(ImGuiCol_Text, Colors::Purple);
-            ImGui::Text(oxorany("Wallhack"));
-            ImGui::PopStyleColor();
-            ImGui::PushStyleColor(ImGuiCol_Text, Colors::TextDim);
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 0);
-            ImGui::Text(oxorany("Safe"));
-            ImGui::PopStyleColor();
-
-            ImGui::SameLine(380);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 35);
-            DrawToggle(oxorany("##wallhack"), &Globals::g_wallhack_C);
-
-            if (Globals::g_wallhack_C)
-            {
-                ImGuiKeyBind(oxorany(""), Globals::g_wallhackBind, wallhackState);
-                if (Globals::g_wallhackBind != 0 && IsKeyPressedOnce(Globals::g_wallhackBind))
-                {
-                    Wallhack::toggle(Globals::g_wallhack, memory.processHandle);
-                }
-            }
-
-            ImGui::Dummy(ImVec2(0, 15));
-
-            // Chams 
-            ImGui::PushStyleColor(ImGuiCol_Text, Colors::Purple);
-            ImGui::Text(oxorany("Chams"));
-            ImGui::PopStyleColor();
-            ImGui::PushStyleColor(ImGuiCol_Text, Colors::TextDim);
-            ImGui::Text(oxorany("Only visible"));
-            ImGui::PopStyleColor();
-
-            ImGui::SameLine(380);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 25);
-            DrawToggle(oxorany("##Chams"), &Globals::g_chams_C);
-
-            if (Globals::g_chams_C)
-            {
-                ImGuiKeyBind(oxorany(""), Globals::g_chamsBind, chamsState);
-                if (Globals::g_chamsBind != 0 && IsKeyPressedOnce(Globals::g_chamsBind))
-                {
-                    Chams::toggle(Globals::g_chams, memory.processHandle);
-                }
-            }
-            ImGui::EndGroup();
-        } else if (currentTab == 1) {
-            // ImGui::SetCursorPosX((window_size.x - 40 - 400) / 2);
-            ImGui::PushStyleColor(ImGuiCol_Button, Colors::ButtonBg);
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Colors::ButtonHover);
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, Colors::ButtonBg);
-            ImGui::PushStyleColor(ImGuiCol_Text, Colors::Text);
-            
-            if (ImGui::Button(oxorany("Save config"), ImVec2(222, 40))) {
-            }
-            ImGui::SameLine();
-            if (ImGui::Button(oxorany("Load config"), ImVec2(222, 40))) {
-            }
-            
-            ImGui::PopStyleColor(4);
-
-            ImGui::Text("t.me/telegram");
-        }
-
-        ImGui::EndChild();
-        ImGui::End();
-    }
+// void DrawFeatureCard(const char* title, bool* enabled, 
+//                      int* keybind, KeyBindState& state, const ImVec2& size) {
+//     ImDrawList* draw_list = ImGui::GetWindowDrawList();
+//     ImVec2 pos = ImGui::GetCursorScreenPos();
+//     ImVec2 endPos(pos.x + size.x, pos.y + size.y);
     
-    ImGui::PopStyleColor(4);
-}
+//     draw_list->AddRectFilled(pos, endPos, ImGui::GetColorU32(Colors::CardBg), 8.0f);
+    
+//     if (ImGui::IsMouseHoveringRect(pos, endPos)) {
+//         draw_list->AddRect(pos, endPos, ImGui::GetColorU32(Colors::Accent), 8.0f, 0, 1.5f);
+//     }
+    
+//     ImGui::BeginGroup();
+//     ImGui::Dummy(ImVec2(size.x, size.y));
+//     ImGui::EndGroup();
+    
+//     ImGui::SetCursorScreenPos(ImVec2(pos.x + 16, pos.y + 25));
+//     ImGui::BeginGroup();
+    
+//     ImGui::PushStyleColor(ImGuiCol_Text, Colors::Accent);
+//     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+//     ImGui::Text("%s", title);
+//     ImGui::PopFont();
+//     ImGui::PopStyleColor();
+    
+//     ImGui::EndGroup();
+    
+//     ImGui::SetCursorScreenPos(ImVec2(endPos.x - 62, pos.y + 25));
+//     std::string toggleId = "##toggle_" + std::string(title);
+//     DrawToggle(toggleId.c_str(), enabled);
+    
+//     if (*enabled) {
+//         ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + size.y - 50));
+//         ImGui::PushItemWidth(size.x - 32);
+//         ImGuiKeyBind("", *keybind, state);
+//         ImGui::PopItemWidth();
+//     }
+    
+//     ImGui::SetCursorScreenPos(ImVec2(pos.x, endPos.y + 12));
+// }
+
+
+// void Drawing::Active() { bDraw = true; }
+// bool Drawing::isActive() { return bDraw; }
+
+// void Drawing::init() {
+//     // int GameClient = MessageBoxW(NULL, oxorany(L"Yes - Steam\nNo - EXBO Launcher"), oxorany(L"Select game client"), MB_YESNO | MB_ICONQUESTION);
+//     // if (GameClient == IDYES) {
+//     //     NameProcess = "stalcraftw.exe";
+//     // } else if (GameClient == IDNO) {
+//     //     NameProcess = "stalcraft.exe";
+//     // }
+
+//     // if (!Game::isRunning(oxorany(NameProcess))) {
+//     //     MessageBoxW(NULL, oxorany(L"Game is not running!"), oxorany(L"Error"), MB_ICONERROR);
+//     //     ExitProcess(EXIT_FAILURE);
+//     // }
+
+//     // processId = Game::getProcessId(oxorany("stalcraftw.exe"));
+//     // memory.processId = processId;
+//     // memory.processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+
+//     // if (!memory.processHandle) {
+//     //     MessageBoxW(NULL, oxorany(L"Failed to open process!"), oxorany(L"Error"), MB_ICONERROR);
+//     //     ExitProcess(EXIT_FAILURE);
+//     // }
+
+//     // do {
+//     //     Globals::baseAddress = memory.GetModuleAddress(oxorany("nvoglv64.dll"));
+//     //     std::this_thread::sleep_for(std::chrono::milliseconds(200));
+//     // } while (!Globals::baseAddress);
+
+// }
+
+// void Drawing::Draw()
+// {
+//     if (!bDraw)
+//         return;
+
+//     // ---------------- STYLE (лучше вынести в init, но оставляем тут)
+//     ImGuiStyle& style = ImGui::GetStyle();
+//     style.WindowRounding = 12.0f;
+//     style.FrameRounding = 6.0f;
+//     style.ScrollbarRounding = 6.0f;
+//     style.GrabRounding = 4.0f;
+//     style.WindowPadding = ImVec2(0, 0);
+//     // style.FramePadding = ImVec2(10, 7);
+//     style.ItemSpacing = ImVec2(14, 14);
+//     style.ScrollbarSize = 10.0f;
+//     ImGui::SetNextWindowSize(ImVec2(520, 480), ImGuiCond_FirstUseEver);
+
+//     ImGui::PushStyleColor(ImGuiCol_WindowBg, Colors::Background);
+//     ImGui::PushStyleColor(ImGuiCol_Border, Colors::Border);
+//     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
+
+//     if (!ImGui::Begin(
+//         "##main",
+//         nullptr,
+//         ImGuiWindowFlags_NoResize |
+//         ImGuiWindowFlags_NoCollapse |
+//         ImGuiWindowFlags_NoTitleBar |
+//         ImGuiWindowFlags_NoScrollbar))
+//     {
+//         ImGui::PopStyleVar();
+//         ImGui::PopStyleColor(2);
+//         ImGui::End();
+//         return;
+//     }
+
+//     // ================= WINDOW DATA =================
+//     ImDrawList* draw = ImGui::GetWindowDrawList();
+//     ImVec2 winPos = ImGui::GetWindowPos();
+//     ImVec2 winSize = ImGui::GetWindowSize();
+//     ImGuiIO& io = ImGui::GetIO();
+
+//     constexpr float headerHeight = 65.0f;
+
+//     // ================= HEADER =================
+//     draw->AddRectFilled(
+//         winPos,
+//         ImVec2(winPos.x + winSize.x, winPos.y + headerHeight),
+//         ImGui::GetColorU32(Colors::TitleBar),
+//         12.0f,
+//         ImDrawFlags_RoundCornersTop
+//     );
+
+//     // Logo
+//     ImGui::SetCursorPos(ImVec2(24, 20));
+//     ImGui::PushStyleColor(ImGuiCol_Text, Colors::Accent);
+//     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+//     ImGui::Text("WXS");
+//     ImGui::PopFont();
+//     ImGui::PopStyleColor();
+
+//     ImGui::SetCursorPos(ImVec2(winSize.x - 44, 20));
+//     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.1f, 0.1f, 1.0f));
+//     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 0.8f));
+//     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.1f, 0.1f, 1.0f));
+//     ImGui::PushStyleColor(ImGuiCol_Text, Colors::Text);
+//     if (ImGui::Button("##exit", ImVec2(28, 28))) {
+//         PostQuitMessage(0);
+//     }
+//     ImGui::PopStyleColor(4);
+
+//     // ================= TABS =================
+//     ImGui::SetCursorPos(ImVec2((winSize.x - 160) * 0.5f, 20));
+
+//     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+//     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Colors::AccentGlow);
+//     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.4f, 0.9f, 0.2f));
+
+//     bool clickHome = false;
+//     bool clickMisc = false;
+
+//     float homeX = 0.0f;
+//     float miscX = 0.0f;
+
+//     ImGui::PushStyleColor(ImGuiCol_Text, currentTab == 0 ? Colors::Text : Colors::TextDim);
+//     if (ImGui::Button("NVIDIA", ImVec2(110, 40)))
+//         clickHome = true;
+//     {
+//         ImVec2 min = ImGui::GetItemRectMin();
+//         ImVec2 max = ImGui::GetItemRectMax();
+//         homeX = (min.x + max.x) * 0.5f;
+//     }
+//     ImGui::PopStyleColor();
+
+//     ImGui::SameLine();
+
+//     ImGui::PushStyleColor(ImGuiCol_Text, currentTab == 1 ? Colors::Text : Colors::TextDim);
+//     if (ImGui::Button("AMD", ImVec2(70, 40)))
+//         clickMisc = true;
+//     {
+//         ImVec2 min = ImGui::GetItemRectMin();
+//         ImVec2 max = ImGui::GetItemRectMax();
+//         miscX = (min.x + max.x) * 0.5f;
+//     }
+//     ImGui::PopStyleColor();
+
+//     ImGui::PopStyleColor(3);
+
+//     // ================= TAB INDICATOR =================
+//     static float indicatorX = -1.0f;
+//     if (indicatorX < 0.0f)
+//         indicatorX = (currentTab == 0) ? homeX : miscX;
+
+//     float targetX = (currentTab == 0) ? homeX : miscX;
+//     indicatorX = ImLerp(indicatorX, targetX, io.DeltaTime * 14.0f);
+
+//     float indicatorY = headerHeight + winPos.y + 4.0f;
+//     draw->AddCircleFilled(
+//         ImVec2(indicatorX, indicatorY),
+//         3.0f,
+//         ImGui::GetColorU32(Colors::Accent),
+//         12
+//     );
+
+//     if (clickHome) currentTab = 0;
+//     if (clickMisc) currentTab = 1;
+
+//     draw->AddLine(
+//         ImVec2(winPos.x + 20, winPos.y + headerHeight),
+//         ImVec2(winPos.x + winSize.x - 20, winPos.y + headerHeight),
+//         ImGui::GetColorU32(Colors::Border),
+//         2.0f
+//     );
+
+//     // ================= CONTENT =================
+//     ImGui::SetCursorPos(ImVec2(20, headerHeight + 20));
+//     if (ImGui::BeginChild(
+//         "##Content",
+//         ImVec2(winSize.x - 40, winSize.y - headerHeight - 40),
+//         false,
+//         ImGuiWindowFlags_NoScrollbar))
+//     {
+//         // if (currentTab == 0)
+//         // {
+//         //     ImVec2 cardSize(winSize.x - 60, Globals::g_wallhack_C ? 120 : 80);
+//         //     DrawFeatureCard("Wallhack",
+//         //         &Globals::g_wallhack_C, 
+//         //         &Globals::g_wallhackBind, 
+//         //         wallhackState, 
+//         //         cardSize);
+
+//         //     if (Globals::g_wallhack_C && Globals::g_wallhackBind &&
+//         //         IsKeyPressedOnce(Globals::g_wallhackBind))
+//         //     {
+//         //         Wallhack::toggle(Globals::g_wallhack, memory.processHandle);
+//         //     }
+
+//         //     cardSize.y = Globals::g_chams_C ? 120 : 80;
+//         //     DrawFeatureCard("Chams", 
+//         //         &Globals::g_chams_C, 
+//         //         &Globals::g_chamsBind, 
+//         //         chamsState, 
+//         //         cardSize);
+
+//         //     if (Globals::g_chams_C && Globals::g_chamsBind &&
+//         //         IsKeyPressedOnce(Globals::g_chamsBind))
+//         //     {
+//         //         Chams::toggle(Globals::g_chams, memory.processHandle);
+//         //     }
+//         // }
+//     }
+//     ImGui::EndChild();
+
+//     // ================= CLEANUP =================
+//     ImGui::End();
+//     ImGui::PopStyleVar();
+//     ImGui::PopStyleColor(2);
+// }

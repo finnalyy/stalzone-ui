@@ -1,0 +1,2 @@
+int clientWidth;
+int clientHeight;
