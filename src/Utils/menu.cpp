@@ -101,7 +101,7 @@ void HandleKeyboardInput(HWND window) {
 }
 
 void RenderMenu() {
-    ImGui::Begin("t.me/wxsdev | NVIDIA", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Begin("t.me/eleutria | NVIDIA", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     
     ImGui::Text("Press F2 to toggle menu clickable");
     ImGui::Separator();

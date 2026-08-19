@@ -1,1 +1,2 @@
-cmake -S . -B build ^ -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+cmake --build build --config Release

@@ -55,7 +55,7 @@ INT APIENTRY WinMain(HINSTANCE instance, HINSTANCE, PSTR, INT cmd_show) {
 #pragma region InitializationAndSetup
 
 
-	HWND hwnd = FindWindow(nullptr, "Stalcraft");
+	HWND hwnd = FindWindow(nullptr, "Stalzone");
 	RECT clientRect;
 	GetClientRect(hwnd, &clientRect);
 	POINT clientTopLeft = { clientRect.left, clientRect.top };
@@ -72,7 +72,7 @@ INT APIENTRY WinMain(HINSTANCE instance, HINSTANCE, PSTR, INT cmd_show) {
 	window = CreateWindowExW(
 		WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED, //WS_EX_TRANSPARENT
 		wc.lpszClassName,
-		L"External Overlay",
+		L"DQW",
 		WS_POPUP,
 		0,
 		0,
@@ -169,15 +169,19 @@ INT APIENTRY WinMain(HINSTANCE instance, HINSTANCE, PSTR, INT cmd_show) {
 		// SilentAim();
 		// TriggerBotUpdate();
 		// view_matrix_t vm = RPM<view_matrix_t>(0x207198698b0);
-		view_matrix_t vm = RPM<view_matrix_t>(0x1DEFBABA830);
-		Vector3 pos = Vector3(4.601863861, 2.36, 0.00);
+		view_matrix_t vm = RPM<view_matrix_t>(0x2D4598721F0);
+		Vector3 pos = Vector3(10, 20, 0); // 4.601863861, 2.36, 2.00
 		Vector3 screenPoint;
 		if (worldToScreenPoint(pos, vm, screenPoint)) {
+			dl->AddText(
+        ImVec2(screenPoint.x, screenPoint.y),
+        IM_COL32_WHITE,
+        pos.to_string().c_str()
+    );
 			dl->AddLine(
 						ImVec2(clientWidth / 2, clientHeight),
 						screenPoint, IM_COL32_WHITE, 1);
 		}
-
 		GetClientRect(hwnd, &clientRect);
 		clientTopLeft = { clientRect.left, clientRect.top };
 		ClientToScreen(hwnd, &clientTopLeft);

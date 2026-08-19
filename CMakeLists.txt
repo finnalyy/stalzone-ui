@@ -1,8 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
+
+set(CMAKE_TOOLCHAIN_FILE
+    "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    CACHE STRING "Vcpkg toolchain file"
+)
+
 project(SK_PROJECT LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 add_compile_definitions(_MBCS)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${PROJECT_SOURCE_DIR}/bin/Debug)
@@ -19,7 +26,6 @@ file(GLOB DIRECTX_LIBS PRIVATE
   "${PROJECT_SOURCE_DIR}/src/SDK/DirectX/Lib/x64/*.lib"
 )
 
-# include dirs
 target_include_directories(main PRIVATE
   "${PROJECT_SOURCE_DIR}/src"
   "${PROJECT_SOURCE_DIR}/src/SDK/DirectX/Include"
@@ -39,5 +45,3 @@ target_link_libraries(main PRIVATE
   CURL::libcurl
   nlohmann_json::nlohmann_json
 )
-
-# target_precompile_headers(main PRIVATE src/pch.h)
