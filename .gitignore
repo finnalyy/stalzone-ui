@@ -1,4 +1,4 @@
 .vscode/
 bin/
 build/
-script/.ve
+vcpkg_installed/

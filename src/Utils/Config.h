@@ -1,5 +1,12 @@
 #pragma once
 
+class WindowState
+{
+public:
+    int clientWidth = 0;
+    int clientHeight = 0;
+};
+
 class Config
 {
 public:

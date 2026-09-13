@@ -1,8 +1,9 @@
 #pragma once
 
 #define NVIDIA_DLL "nvoglv64.dll"
+// #define AMD_DLL ""
 
-#define STEAM_EXE L"stalcraftw.exe"
+#define STEAM_EXE L"stalzonew.exe"
 #define EXBO_EXE L"stalcraft.exe"
 
 // #define WALLHACK_ADDRESS 0x7DC608

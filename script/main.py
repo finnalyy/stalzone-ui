@@ -2,14 +2,12 @@ import pymem
 import pymem.process
 import sys
 
-# Опкод для инструкции `shl rcx,04`
+# shl rcx, 04
 pattern = b'\xA9\xFF\xF7\xFF\xFF'
 
-# Название процесса
 process_name = "stalcraftw.exe"
 
 try:
-    # Открываем процесс
     pm = pymem.Pymem(process_name)
 except pymem.exception.ProcessNotFound:
     print(f"Процесс {process_name} не найден.")
@@ -50,7 +48,7 @@ def find_all_patterns(handle, base, size, pattern):
             offset = buffer.find(pattern, offset)
             if offset != -1:
                 addresses.append(base + i + offset)
-                offset += len(pattern)  # Сдвигаем указатель для поиска следующих вхождений
+                offset += len(pattern)
     return addresses
 
 # Ищем все совпадения в модуле
@@ -69,6 +67,6 @@ if results:
                 print(f'wallhack -> 0x{address:X}')
             # print(f"0x{address:X}")
             if index == 14:
-                print(f'fuck models -> 0x{address:X}')
+                print(f'... models -> 0x{address:X}')
 else:
     print("Инструкции не найдены.")

@@ -10,16 +10,13 @@
 
 #include <cstdio>
 #include <TlHelp32.h>
-#include <string>
-#include <iostream>
-#include <algorithm>
-#include <map>
+#include "Utils/config.h"
 #include "menu.h"
-#include "Utils/memory/memory_func.h"
-#include "Utils/Globals/math.h"
-#include "Utils/Globals/globals.h"
+#include "memory/memory_func.h"
 #include "offsets.h"
 #include "hacks.h"
+
+WindowState windowState;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -39,8 +36,6 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM w_param, LPA
 
 	return DefWindowProc(window, message, w_param, l_param);
 }
-
-
 
 INT APIENTRY WinMain(HINSTANCE instance, HINSTANCE, PSTR, INT cmd_show) {
 	if (!AttachToProcess())
@@ -62,8 +57,8 @@ INT APIENTRY WinMain(HINSTANCE instance, HINSTANCE, PSTR, INT cmd_show) {
 	ClientToScreen(hwnd, &clientTopLeft);
 	int clientX = clientTopLeft.x;
 	int clientY = clientTopLeft.y;
-	clientWidth = clientRect.right - clientRect.left;
-	clientHeight = clientRect.bottom - clientRect.top;
+	windowState.clientWidth = clientRect.right - clientRect.left;
+	windowState.clientHeight = clientRect.bottom - clientRect.top;
 
 	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, window_procedure, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
 
@@ -76,7 +71,7 @@ INT APIENTRY WinMain(HINSTANCE instance, HINSTANCE, PSTR, INT cmd_show) {
 		WS_POPUP,
 		0,
 		0,
-		clientWidth, clientHeight,
+		windowState.clientWidth, windowState.clientHeight,
 		nullptr,
 		nullptr,
 		wc.hInstance,
@@ -161,27 +156,12 @@ INT APIENTRY WinMain(HINSTANCE instance, HINSTANCE, PSTR, INT cmd_show) {
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-
 		HandleKeyboardInput(window);
+
 		RenderMenu();
+
 		ImDrawList* dl = ImGui::GetBackgroundDrawList();
-		// RenderESP();
-		// SilentAim();
-		// TriggerBotUpdate();
-		// view_matrix_t vm = RPM<view_matrix_t>(0x207198698b0);
-		view_matrix_t vm = RPM<view_matrix_t>(0x2D4598721F0);
-		Vector3 pos = Vector3(10, 20, 0); // 4.601863861, 2.36, 2.00
-		Vector3 screenPoint;
-		if (worldToScreenPoint(pos, vm, screenPoint)) {
-			dl->AddText(
-        ImVec2(screenPoint.x, screenPoint.y),
-        IM_COL32_WHITE,
-        pos.to_string().c_str()
-    );
-			dl->AddLine(
-						ImVec2(clientWidth / 2, clientHeight),
-						screenPoint, IM_COL32_WHITE, 1);
-		}
+
 		GetClientRect(hwnd, &clientRect);
 		clientTopLeft = { clientRect.left, clientRect.top };
 		ClientToScreen(hwnd, &clientTopLeft);

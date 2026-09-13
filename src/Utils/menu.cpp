@@ -11,7 +11,7 @@ static bool isBindingWallhack = false;
 
 const char* GetKeyName(int vk) {
     if (vk == 0) return "None";
-    
+
     static char keyName[32];
     switch (vk) {
         case VK_LBUTTON: return "LMouse";
@@ -59,7 +59,6 @@ const char* GetKeyName(int vk) {
 }
 
 void HandleKeyboardInput(HWND window) {
-    // F2 для переключения режима меню
     if (GetAsyncKeyState(VK_F2) & 1) {
         isMenuClickable = !isMenuClickable;
         if (isMenuClickable == false) {
@@ -69,26 +68,23 @@ void HandleKeyboardInput(HWND window) {
         }
     }
 
-    // Если ждём назначения клавиши для wallhack
     if (isBindingWallhack) {
         // Проверяем все возможные клавиши
         for (int vk = 0x08; vk <= 0xFE; vk++) {
-            // Пропускаем F2 (зарезервирован для меню)
             if (vk == VK_F2) continue;
-            
+
             if (GetAsyncKeyState(vk) & 1) {
                 config.wallhackKey = vk;
                 isBindingWallhack = false;
                 break;
             }
         }
-        
-        // ESC для отмены
+
         if (GetAsyncKeyState(VK_ESCAPE) & 1) {
             isBindingWallhack = false;
         }
-        
-        return; // Не обрабатываем другие клавиши во время привязки
+
+        return;
     }
 
     // Проверка бинда для wallhack
@@ -102,7 +98,7 @@ void HandleKeyboardInput(HWND window) {
 
 void RenderMenu() {
     ImGui::Begin("t.me/eleutria | NVIDIA", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-    
+
     ImGui::Text("Press F2 to toggle menu clickable");
     ImGui::Separator();
 
@@ -111,23 +107,23 @@ void RenderMenu() {
     }
 
     ImGui::SameLine();
-    
+
     if (isBindingWallhack) {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
         if (ImGui::Button("Press any key...")) {
         }
         ImGui::PopStyleColor();
-        
+
         ImGui::SameLine();
         ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "ESC to cancel");
     } else {
         char buttonText[64];
         sprintf_s(buttonText, "Bind: %s", GetKeyName(config.wallhackKey));
-        
+
         if (ImGui::Button(buttonText)) {
             isBindingWallhack = true;
         }
-        
+
         if (config.wallhackKey != 0) {
             ImGui::SameLine();
             if (ImGui::Button("Clear")) {
@@ -135,6 +131,6 @@ void RenderMenu() {
             }
         }
     }
-    
+
     ImGui::End();
 }
