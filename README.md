@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn4.telesco.pe/file/Y6Jd3RGInCf5QBANBvr_-L1xkffHb5WFPhjmCmZ82IN704EGTxW_HEkmFcYanHigt1873gs_S2sVFAD5zRyXAzI6zys0spA5WW7An2z_8k0GR_CnIkzIJiKBFVBKGYliU4QGtrgkYv6rUwHeFK_E7p5pRpipfRrALmW8nB-uUpf28mfDGKxQe1MkwKRnzhF6gmTmm0hWadceBXpkihwSFge97y-TYxwMCIz2X8UhsguzLP_PXkS3Ziudg-Jn1L-Bpj3vGmLfBA0XTEYX-b8xcRwvDeJL3WpzrmiNcmWnmrDPhRTus7_9L8RXjhV1alKFTbTCKiUU_P5iIKZOusXU8Q.jpg" alt="Eleutria Preview">
+  Preview: https://t.me/wxsdev/14
 </p>
 
 ## Установка
