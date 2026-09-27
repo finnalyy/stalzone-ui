@@ -1,42 +1,75 @@
+## Preview
+
 <p align="center">
-  Preview: https://t.me/wxsdev/14
+  <img src="https://i.imgur.com/8A3kv0k.png" alt="STALZONE UI Preview">
 </p>
 
-## Установка
+## Features
 
-### 1. Клонирование проекта
+* Native Windows application
+* ImGui-based interface
+* DirectX 11 rendering
+* HTTP requests via cURL
+* JSON processing via nlohmann/json
+* x64 build support
+
+## Tech Stack
+
+| Technology    | Purpose                      |
+| ------------- | ---------------------------- |
+| C++17         | Core application             |
+| CMake         | Build system                 |
+| DirectX 11    | Rendering                    |
+| ImGui         | User interface               |
+| cURL          | HTTP requests                |
+| nlohmann/json | JSON serialization / parsing |
+| vcpkg         | Dependency management        |
+
+## Requirements
+
+* Windows 10/11
+* Visual Studio with C++ desktop development tools
+* CMake 3.16+
+* Git
+* vcpkg
+
+## Build
 
 ```bash
 git clone https://github.com/finnalyy/stalzone-ui.git
 cd stalzone-ui
 ```
 
-### 2. Установка vcpkg
+Configure:
 
 ```bash
-git clone https://github.com/microsoft/vcpkg.git cd C:/vcpkg
-.\bootstrap-vcpkg.bat
+cmake -S . -B build -A x64
 ```
 
-### 3. Сборка проекта
-
-Сгенерируйте проект Visual Studio:
+Build:
 
 ```bash
-cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build build --config Release
 ```
 
-```.exe``` появится в:
+## Project Structure
 
 ```text
-bin/Release/
+stalzone-ui/
+├── src/
+│   ├── SDK/
+│   │   ├── DirectX/
+│   │   └── ImGui/
+│   ├── UI/
+│   └── Utils/
+├── script/
+├── CMakeLists.txt
+├── vcpkg.json
+├── .gitmodules
+└── README.md
 ```
 
-## Devs
+## Contact
 
 * Telegram: [@eleutria](https://t.me/eleutria)
 * Telegram: [@wxsdev](https://t.me/wxsdev)
-
-##
-<p align="center"><b>Open Source • Eleutria</b></p>
